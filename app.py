@@ -7,32 +7,32 @@ import itertools
 coefficients = {
     'Intercept': -2.74,
     'Province': {
-        'Alberta': 0.32, 'British Columbia': 0.30, 'Manitoba': 0.37,
+        'Newfoundland and Labrador':0.0,'Alberta': 0.32, 'British Columbia': 0.30, 'Manitoba': 0.37,
         'New Brunswick': 0.14, 'Nova Scotia': 0.14, 'Ontario': 0.23,
         'Prince Edward Island': 0.38, 'Quebec': 0.44, 'Saskatchewan': 0.38
     },
     'Age': {
-        '20 to 24 years': 0.48, '25 to 29 years': 0.97, '30 to 34 years': 1.08,
+        '15 to 19 years':0.0,'20 to 24 years': 0.48, '25 to 29 years': 0.97, '30 to 34 years': 1.08,
         '35 to 39 years': 1.12, '40 to 44 years': 1.17, '45 to 49 years': 1.14,
         '50 to 54 years': 0.94, '55 to 59 years': 0.37, '60 to 64 years': -0.40,
         '65 to 69 years': -1.42, '70 and over': -2.55
     },
-    'Gender': {'Male': 0.39},
+    'Gender': {'Female':0.0,'Male': 0.39},
     'MarStat': {
-        'Divorced': 0.27, 'Living in common-law': 0.42,
+        'Separated':0.0,'Divorced': 0.27, 'Living in common-law': 0.42,
         'Married': 0.44, 'Single, never married': -0.22, 'Widowed': -0.16
     },
     'Educ': {
-        "Above bachelor's degree": 1.48, "Bachelor's degree": 1.32,
+        '0 to 8 years':0.0,"Above bachelor's degree": 1.48, "Bachelor's degree": 1.32,
         'High school graduate': 0.80, 'Postsecondary certificate or diploma': 1.18,
         'Some high school': -0.10, 'Some postsecondary': 0.69
     },
     'Inmig': {
-        'Immigrant, landed 10 or less years earlier': -0.35,
+        'Non-immigrant':0.0,'Immigrant, landed 10 or less years earlier': -0.35,
         'Immigrant, landed more than 10 years earlier': 0.07
     },
     'NOC': {
-        'Business, finance and administration occupations, except management': 3.14,
+        'Occupations in art, culture, recreation and sport, except management':0.0,'Business, finance and administration occupations, except management': 3.14,
         'Health occupations, except management': 3.44, 'Management occupations': 1.83,
         'Natural and applied sciences and related occupations, except management': 0.74,
         'Natural resources, agriculture and related production occupations, except management': -0.18,
@@ -41,7 +41,7 @@ coefficients = {
         'Sales and service occupations, except management': 2.25,
         'Trades, transport and equipment operators and related occupations, except management': 2.83
     },
-    'Quarter': {'Q2': 0.10, 'Q3': 0.10, 'Q4': 0.04}
+    'Quarter': {'Q1':0.0,'Q2': 0.10, 'Q3': 0.10, 'Q4': 0.04}
 }
 
 # Definir función para calcular la probabilidad

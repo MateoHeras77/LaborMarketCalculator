@@ -1,0 +1,30 @@
+import pandas as pd
+
+# Supongamos que 'df' es el DataFrame original con las columnas 'NAICS_21' y 'Has_a_job'.
+
+# Crear un DataFrame vacío para almacenar los datos balanceados
+balanced_data = []
+
+# Obtener la lista de categorías únicas en 'NAICS_21'
+categories = df2['NAICS_21'].unique()
+
+# Iterar sobre cada categoría
+for category in categories:
+    # Filtrar los datos de la categoría actual para ambos valores de 'Has_a_job'
+    df_category_0 = df2[(df2['NAICS_21'] == category) & (df2['Has_a_job'] == 0)]
+    df_category_1 = df2[(df2['NAICS_21'] == category) & (df2['Has_a_job'] == 1)]
+    
+    # Determinar el número de registros en 'Has_a_job' = 0
+    n_records_0 = len(df_category_0)
+    
+    # Si hay más registros en 'Has_a_job' = 1, hacer un muestreo aleatorio para igualar el número
+    if len(df_category_1) > n_records_0:
+        df_category_1 = df_category_1.sample(n= int(n_records_0 * np.random.uniform(1, 1.2)), random_state=1)
+    
+    # Agregar los datos balanceados de la categoría actual al nuevo DataFrame
+    balanced_data.append(df_category_0)
+    balanced_data.append(df_category_1)
+
+# Concatenar todos los datos balanceados en un solo DataFrame
+balanced_df = pd.concat(balanced_data).reset_index(drop=True)
+balanced_df.head()
