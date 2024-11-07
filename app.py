@@ -67,8 +67,7 @@ def calculate_probability(selected_profile):
         logit += coefficients['Quarter'][combo[1]]
         
         # Calcular probabilidad
-        probability = np.exp(logit) / (1 + np.exp(logit))
-        
+        probability = np.round((np.exp(logit) / (1 + np.exp(logit)))*100,2)        
         # Guardar resultado
         results.append({
             'Province': combo[0], 'Quarter': combo[1],
