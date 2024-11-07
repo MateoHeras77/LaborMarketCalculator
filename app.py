@@ -2,105 +2,225 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import itertools
+import altair as alt
 
-# Configuración de los coeficientes (igual al código anterior)
-coefficients = {
-    'Intercept': -2.74,
-    'Province': {
-        'Newfoundland and Labrador':0.0,'Alberta': 0.32, 'British Columbia': 0.30, 'Manitoba': 0.37,
-        'New Brunswick': 0.14, 'Nova Scotia': 0.14, 'Ontario': 0.23,
-        'Prince Edward Island': 0.38, 'Quebec': 0.44, 'Saskatchewan': 0.38
-    },
-    'Age': {
-        '15 to 19 years':0.0,'20 to 24 years': 0.48, '25 to 29 years': 0.97, '30 to 34 years': 1.08,
-        '35 to 39 years': 1.12, '40 to 44 years': 1.17, '45 to 49 years': 1.14,
-        '50 to 54 years': 0.94, '55 to 59 years': 0.37, '60 to 64 years': -0.40,
-        '65 to 69 years': -1.42, '70 and over': -2.55
-    },
-    'Gender': {'Female':0.0,'Male': 0.39},
-    'MarStat': {
-        'Separated':0.0,'Divorced': 0.27, 'Living in common-law': 0.42,
-        'Married': 0.44, 'Single, never married': -0.22, 'Widowed': -0.16
-    },
-    'Educ': {
-        '0 to 8 years':0.0,"Above bachelor's degree": 1.48, "Bachelor's degree": 1.32,
-        'High school graduate': 0.80, 'Postsecondary certificate or diploma': 1.18,
-        'Some high school': -0.10, 'Some postsecondary': 0.69
-    },
-    'Inmig': {
-        'Non-immigrant':0.0,'Immigrant, landed 10 or less years earlier': -0.35,
-        'Immigrant, landed more than 10 years earlier': 0.07
-    },
-    'NOC': {
-        'Occupations in art, culture, recreation and sport, except management':0.0,'Business, finance and administration occupations, except management': 3.14,
-        'Health occupations, except management': 3.44, 'Management occupations': 1.83,
-        'Natural and applied sciences and related occupations, except management': 0.74,
-        'Natural resources, agriculture and related production occupations, except management': -0.18,
-        'Occupations in education, law and social, community and government services, except management': 1.47,
-        'Occupations in manufacturing and utilities, except management': 0.37,
-        'Sales and service occupations, except management': 2.25,
-        'Trades, transport and equipment operators and related occupations, except management': 2.83
-    },
-    'Quarter': {'Q1':0.0,'Q2': 0.10, 'Q3': 0.10, 'Q4': 0.04}
-}
-
-# Definir función para calcular la probabilidad
-def calculate_probability(selected_profile):
-    # Crear combinaciones de Province y Quarter, ya que NOC es elegido por el usuario
-    combinations = list(itertools.product(
-        coefficients['Province'].keys(),
-        coefficients['Quarter'].keys()
-    ))
+def load_coefficient_data(csv_path):
+    """
+    Loads and structures coefficients from the CSV file.
+    Returns a dictionary of dictionaries by year.
+    """
+    df = pd.read_csv(csv_path)
     
-    # Lista para almacenar resultados
-    results = []
+    years = [col for col in df.columns if col.isdigit()]
+    coefficients_by_year = {}
     
-    for combo in combinations:
-        logit = coefficients['Intercept']  # Empezar con el intercepto
-
-        # Sumar coeficientes del perfil seleccionado
-        for feature, category in selected_profile.items():
-            logit += coefficients[feature][category]
+    for year in years:
+        coefficients = {
+            'Intercept': df[df['Base Category'] == 'Intercept'][year].iloc[0]
+        }
         
-        # Sumar coeficientes de la combinación
-        logit += coefficients['Province'][combo[0]]
-        logit += coefficients['Quarter'][combo[1]]
+        for base_category in df['Base Category'].unique():
+            if base_category != 'Intercept':
+                category_data = df[df['Base Category'] == base_category]
+                coefficients[base_category] = dict(zip(category_data['Categories'], 
+                                                     category_data[year]))
         
-        # Calcular probabilidad
-        probability = np.round((np.exp(logit) / (1 + np.exp(logit)))*100,2)        
-        # Guardar resultado
-        results.append({
-            'Province': combo[0], 'Quarter': combo[1],
-            'Logit': logit, 'Probability': probability
-        })
+        coefficients_by_year[year] = coefficients
     
-    # Convertir a DataFrame y ordenar por probabilidad descendente
-    results_df = pd.DataFrame(results).sort_values(by='Probability', ascending=False)
+    return coefficients_by_year
+
+def calculate_probability(selected_profile, coefficients_by_year):
+    """
+    Calculates probabilities for all years, provinces, and quarters.
+    """
+    all_results = []
+    
+    for year, coefficients in coefficients_by_year.items():
+        combinations = list(itertools.product(
+            coefficients['Province'].keys(),
+            coefficients['Quarter'].keys()
+        ))
+        
+        for combo in combinations:
+            logit = coefficients['Intercept']
+            
+            for feature, category in selected_profile.items():
+                logit += coefficients[feature][category]
+            
+            logit += coefficients['Province'][combo[0]]
+            logit += coefficients['Quarter'][combo[1]]
+            
+            probability = np.round((np.exp(logit) / (1 + np.exp(logit))) * 100, 2)
+            
+            all_results.append({
+                'Year': year,
+                'Province': combo[0],
+                'Quarter': combo[1],
+                'Probability': probability
+            })
+    
+    results_df = pd.DataFrame(all_results).sort_values(
+        by=['Year', 'Probability'], 
+        ascending=[True, False]
+    )
     return results_df
 
-# Interfaz de usuario en Streamlit
-st.title("Recomendador de oportunidades laborales")
+def initialize_session_state():
+    """
+    Initializes session state if it does not exist.
+    """
+    if 'results_calculated' not in st.session_state:
+        st.session_state.results_calculated = False
+    if 'results_df' not in st.session_state:
+        st.session_state.results_df = None
+    if 'show_trends' not in st.session_state:
+        st.session_state.show_trends = False
+    if 'selected_year' not in st.session_state:
+        st.session_state.selected_year = 'All'
+    if 'selected_province' not in st.session_state:
+        st.session_state.selected_province = 'All'
+    if 'graph_province' not in st.session_state:
+        st.session_state.graph_province = 'All'
 
-# Listas desplegables para el perfil del usuario
-age = st.selectbox("Selecciona tu edad", list(coefficients['Age'].keys()))
-gender = st.selectbox("Selecciona tu género", list(coefficients['Gender'].keys()))
-marstat = st.selectbox("Selecciona tu estado civil", list(coefficients['MarStat'].keys()))
-educ = st.selectbox("Selecciona tu nivel educativo", list(coefficients['Educ'].keys()))
-inmig = st.selectbox("Selecciona tu estatus migratorio", list(coefficients['Inmig'].keys()))
-noc = st.selectbox("Selecciona el tipo de ocupación (NOC)", list(coefficients['NOC'].keys()))
+def calculate_and_store_results():
+    """
+    Calculates the results and stores them in session state.
+    """
+    st.session_state.results_df = calculate_probability(
+        st.session_state.selected_profile,
+        st.session_state.coefficients_by_year
+    )
+    st.session_state.results_calculated = True
 
-# Almacenar el perfil seleccionado
-selected_profile = {
-    'Age': age,
-    'Gender': gender,
-    'MarStat': marstat,
-    'Educ': educ,
-    'Inmig': inmig,
-    'NOC': noc
-}
+def main():
+    st.title("Historical Job Opportunities Recommender")
 
-# Calcular y mostrar las recomendaciones
-if st.button("Calcular mejores oportunidades"):
-    results_df = calculate_probability(selected_profile)
-    st.write("Recomendaciones basadas en tu perfil (ordenadas por probabilidad):")
-    st.write(results_df)  # Mostrar todas las combinaciones sin limitar el número de resultados
+    st.sidebar.title("About the Author")
+    st.sidebar.markdown("""
+    **Author**: Wilmer Mateo Heras Vera  
+    **University**: University of Niagara Falls  
+    **Email**: [wmateohv@hotmail.com](mailto:wmateohv@hotmail.com)  
+    **LinkedIn**: [linkedin.com/in/mateoheras](https://www.linkedin.com/in/mateoheras/)  
+    
+    ![Logo](https://unfc.ca/wp-content/uploads/2023/04/UNF-logo-full.svg)
+    """, unsafe_allow_html=True)
+
+    initialize_session_state()
+    
+    try:
+        if 'coefficients_by_year' not in st.session_state:
+            st.session_state.coefficients_by_year = load_coefficient_data('Book2.csv')
+        
+        first_year = list(st.session_state.coefficients_by_year.keys())[0]
+        coefficients = st.session_state.coefficients_by_year[first_year]
+        
+        st.subheader("User Profile")
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            age = st.selectbox("Age", list(coefficients['Age'].keys()), key='age')
+            gender = st.selectbox("Gender", list(coefficients['Gender'].keys()), key='gender')
+            marstat = st.selectbox("Marital Status", list(coefficients['MarStat'].keys()), key='marstat')
+        
+        with col2:
+            educ = st.selectbox("Education Level", list(coefficients['Educ'].keys()), key='educ')
+            inmig = st.selectbox("Migration Status", list(coefficients['Inmig'].keys()), key='inmig')
+            noc = st.selectbox("Occupation (NOC)", list(coefficients['NOC'].keys()), key='noc')
+        
+        st.session_state.selected_profile = {
+            'Age': age,
+            'Gender': gender,
+            'MarStat': marstat,
+            'Educ': educ,
+            'Inmig': inmig,
+            'NOC': noc
+        }
+        
+        if st.button("Calculate Historical Probabilities"):
+            calculate_and_store_results()
+        
+        if st.session_state.results_calculated:
+            st.subheader("Historical Results")
+            
+            col1, col2 = st.columns(2)
+            with col1:
+                st.session_state.selected_year = st.selectbox(
+                    "Filter by Year",
+                    ['All'] + sorted(st.session_state.results_df['Year'].unique().tolist()),
+                    key='year_filter'
+                )
+            with col2:
+                st.session_state.selected_province = st.selectbox(
+                    "Filter by Province in Table",
+                    ['All'] + sorted(st.session_state.results_df['Province'].unique().tolist()),
+                    key='province_filter'
+                )
+            
+            filtered_df = st.session_state.results_df.copy()
+            if st.session_state.selected_year != 'All':
+                filtered_df = filtered_df[filtered_df['Year'] == st.session_state.selected_year]
+            if st.session_state.selected_province != 'All':
+                filtered_df = filtered_df[filtered_df['Province'] == st.session_state.selected_province]
+
+            filtered_df_styled = filtered_df[['Year', 'Province', 'Quarter', 'Probability']]
+            st.dataframe(filtered_df_styled.style.format({'Probability': "{:.2f}%"}))
+
+            st.session_state.graph_province = st.selectbox(
+                "Select Province for Graph",
+                ['All'] + sorted(st.session_state.results_df['Province'].unique().tolist()),
+                key='graph_province_filter'
+            )
+
+            st.session_state.show_trends = st.checkbox(
+                "Show Trends Graph",
+                value=st.session_state.show_trends,
+                key='show_trends_checkbox'
+            )
+            
+            if st.session_state.show_trends:
+                graph_df = st.session_state.results_df.copy()
+                if st.session_state.graph_province != 'All':
+                    graph_df = graph_df[graph_df['Province'] == st.session_state.graph_province]
+                
+                # Combine Year and Quarter for X-axis display
+                graph_df['Year_Quarter'] = graph_df['Year'] + "-Q" + graph_df['Quarter'].astype(str)
+                
+                # Define the Altair chart
+                chart = alt.Chart(graph_df).mark_line().encode(
+                    x=alt.X('Year_Quarter:O', title="Year and Quarter"),
+                    y=alt.Y('Probability:Q', title="Probability (%)"),
+                    color='Province:N',
+                    tooltip=['Year', 'Quarter', 'Province', 'Probability']
+                ).properties(
+                    title="Probability Trends by Province"
+                ).configure_axis(
+                    labelAngle=-45  # Optional: Rotate labels for better readability
+                )
+                
+                st.altair_chart(chart, use_container_width=True)
+                
+    except Exception as e:
+        st.error(f"Error loading or processing data: {str(e)}")
+        st.write("Please verify that the CSV file is correctly formatted and accessible.")
+
+    st.markdown("""
+    <style>
+        .footer {
+            position: fixed;
+            left: 0;
+            bottom: 0;
+            width: 100%;
+            background-color: #f5f5f5;
+            color: black;
+            text-align: center;
+            padding: 10px;
+            font-size: 12px;
+        }
+    </style>
+    <div class="footer">
+        Developed by Wilmer Mateo Heras Vera | © 2024 Niagara Falls University
+    </div>
+    """, unsafe_allow_html=True)
+
+if __name__ == "__main__":
+    main()

@@ -6,16 +6,12 @@ import altair as alt
 
 def load_coefficient_data(csv_path):
     """
-    Carga y estructura los coeficientes desde el archivo CSV.
-    Retorna un diccionario de diccionarios por año.
+    Loads and structures coefficients from the CSV file.
+    Returns a dictionary of dictionaries by year.
     """
-    # Leer el CSV
     df = pd.read_csv(csv_path)
     
-    # Obtener los años únicos
     years = [col for col in df.columns if col.isdigit()]
-    
-    # Diccionario para almacenar coeficientes por año
     coefficients_by_year = {}
     
     for year in years:
@@ -35,7 +31,7 @@ def load_coefficient_data(csv_path):
 
 def calculate_probability(selected_profile, coefficients_by_year):
     """
-    Calcula probabilidades para todos los años, provincias y trimestres.
+    Calculates probabilities for all years, provinces, and quarters.
     """
     all_results = []
     
@@ -71,7 +67,7 @@ def calculate_probability(selected_profile, coefficients_by_year):
 
 def initialize_session_state():
     """
-    Inicializa el estado de la sesión si no existe.
+    Initializes session state if it does not exist.
     """
     if 'results_calculated' not in st.session_state:
         st.session_state.results_calculated = False
@@ -80,13 +76,15 @@ def initialize_session_state():
     if 'show_trends' not in st.session_state:
         st.session_state.show_trends = False
     if 'selected_year' not in st.session_state:
-        st.session_state.selected_year = 'Todos'
+        st.session_state.selected_year = 'All'
     if 'selected_province' not in st.session_state:
-        st.session_state.selected_province = 'Todas'
+        st.session_state.selected_province = 'All'
+    if 'graph_province' not in st.session_state:
+        st.session_state.graph_province = 'All'
 
 def calculate_and_store_results():
     """
-    Calcula los resultados y los almacena en el estado de la sesión.
+    Calculates the results and stores them in session state.
     """
     st.session_state.results_df = calculate_probability(
         st.session_state.selected_profile,
@@ -95,35 +93,40 @@ def calculate_and_store_results():
     st.session_state.results_calculated = True
 
 def main():
-    st.title("Recomendador histórico de oportunidades laborales")
+    st.title("Historical Job Opportunities Recommender")
+
+    st.sidebar.title("About the Author")
+    st.sidebar.markdown("""
+    **Author**: Wilmer Mateo Heras Vera  
+    **University**: University of Niagara Falls  
+    **Email**: [wmateohv@hotmail.com](mailto:wmateohv@hotmail.com)  
+    **LinkedIn**: [linkedin.com/in/mateoheras](https://www.linkedin.com/in/mateoheras/)  
     
-    # Inicializar el estado de la sesión
+    ![Logo](https://unfc.ca/wp-content/uploads/2023/04/UNF-logo-full.svg)
+    """, unsafe_allow_html=True)
+
     initialize_session_state()
     
     try:
-        # Cargar datos solo una vez y almacenarlos en session_state
         if 'coefficients_by_year' not in st.session_state:
             st.session_state.coefficients_by_year = load_coefficient_data('Book2.csv')
         
-        # Obtener coeficientes del primer año
         first_year = list(st.session_state.coefficients_by_year.keys())[0]
         coefficients = st.session_state.coefficients_by_year[first_year]
         
-        # Crear selectores para el perfil del usuario
-        st.subheader("Perfil del usuario")
+        st.subheader("User Profile")
         col1, col2 = st.columns(2)
         
         with col1:
-            age = st.selectbox("Edad", list(coefficients['Age'].keys()), key='age')
-            gender = st.selectbox("Género", list(coefficients['Gender'].keys()), key='gender')
-            marstat = st.selectbox("Estado civil", list(coefficients['MarStat'].keys()), key='marstat')
+            age = st.selectbox("Age", list(coefficients['Age'].keys()), key='age')
+            gender = st.selectbox("Gender", list(coefficients['Gender'].keys()), key='gender')
+            marstat = st.selectbox("Marital Status", list(coefficients['MarStat'].keys()), key='marstat')
         
         with col2:
-            educ = st.selectbox("Nivel educativo", list(coefficients['Educ'].keys()), key='educ')
-            inmig = st.selectbox("Estatus migratorio", list(coefficients['Inmig'].keys()), key='inmig')
-            noc = st.selectbox("Ocupación (NOC)", list(coefficients['NOC'].keys()), key='noc')
+            educ = st.selectbox("Education Level", list(coefficients['Educ'].keys()), key='educ')
+            inmig = st.selectbox("Migration Status", list(coefficients['Inmig'].keys()), key='inmig')
+            noc = st.selectbox("Occupation (NOC)", list(coefficients['NOC'].keys()), key='noc')
         
-        # Almacenar el perfil seleccionado en session_state
         st.session_state.selected_profile = {
             'Age': age,
             'Gender': gender,
@@ -133,67 +136,91 @@ def main():
             'NOC': noc
         }
         
-        if st.button("Calcular probabilidades históricas"):
+        if st.button("Calculate Historical Probabilities"):
             calculate_and_store_results()
         
-        # Mostrar resultados si se han calculado
         if st.session_state.results_calculated:
-            st.subheader("Resultados históricos")
+            st.subheader("Historical Results")
             
-            # Filtros con estado persistente
             col1, col2 = st.columns(2)
             with col1:
                 st.session_state.selected_year = st.selectbox(
-                    "Filtrar por año",
-                    ['Todos'] + sorted(st.session_state.results_df['Year'].unique().tolist()),
+                    "Filter by Year",
+                    ['All'] + sorted(st.session_state.results_df['Year'].unique().tolist()),
                     key='year_filter'
                 )
             with col2:
                 st.session_state.selected_province = st.selectbox(
-                    "Filtrar por provincia",
-                    ['Todas'] + sorted(st.session_state.results_df['Province'].unique().tolist()),
+                    "Filter by Province in Table",
+                    ['All'] + sorted(st.session_state.results_df['Province'].unique().tolist()),
                     key='province_filter'
                 )
             
-            # Aplicar filtros
             filtered_df = st.session_state.results_df.copy()
-            if st.session_state.selected_year != 'Todos':
+            if st.session_state.selected_year != 'All':
                 filtered_df = filtered_df[filtered_df['Year'] == st.session_state.selected_year]
-            if st.session_state.selected_province != 'Todas':
+            if st.session_state.selected_province != 'All':
                 filtered_df = filtered_df[filtered_df['Province'] == st.session_state.selected_province]
-            
-            # Mostrar resultados filtrados
-            st.dataframe(filtered_df)
-            
-            # Checkbox para mostrar tendencias con estado persistente
+
+            filtered_df_styled = filtered_df[['Year', 'Province', 'Quarter', 'Probability']]
+            st.dataframe(filtered_df_styled.style.format({'Probability': "{:.2f}%"}))
+
+            st.session_state.graph_province = st.selectbox(
+                "Select Province for Graph",
+                ['All'] + sorted(st.session_state.results_df['Province'].unique().tolist()),
+                key='graph_province_filter'
+            )
+
             st.session_state.show_trends = st.checkbox(
-                "Mostrar gráfico de tendencias",
+                "Show Trends Graph",
                 value=st.session_state.show_trends,
                 key='show_trends_checkbox'
             )
             
             if st.session_state.show_trends:
-                # Crear columna combinada de 'Year_Quarter'
-                st.session_state.results_df['Year_Quarter'] = (
-                    st.session_state.results_df['Year'].astype(str) + 
-                    " Q" + st.session_state.results_df['Quarter'].astype(str)
-                )
+                graph_df = st.session_state.results_df.copy()
+                if st.session_state.graph_province != 'All':
+                    graph_df = graph_df[graph_df['Province'] == st.session_state.graph_province]
                 
-                # Crear gráfico con Altair
-                chart = alt.Chart(st.session_state.results_df).mark_line().encode(
-                    x='Year_Quarter:N',
-                    y='Probability:Q',
+                # Combine Year and Quarter for X-axis display
+                graph_df['Year_Quarter'] = graph_df['Year'] + "-Q" + graph_df['Quarter'].astype(str)
+                
+                # Define the Altair chart
+                chart = alt.Chart(graph_df).mark_line().encode(
+                    x=alt.X('Year_Quarter:O', title="Year and Quarter"),
+                    y=alt.Y('Probability:Q', title="Probability (%)"),
                     color='Province:N',
                     tooltip=['Year', 'Quarter', 'Province', 'Probability']
                 ).properties(
-                    title="Tendencias de Probabilidad por Provincia"
+                    title="Probability Trends by Province"
+                ).configure_axis(
+                    labelAngle=-45  # Optional: Rotate labels for better readability
                 )
                 
                 st.altair_chart(chart, use_container_width=True)
                 
     except Exception as e:
-        st.error(f"Error al cargar o procesar los datos: {str(e)}")
-        st.write("Por favor, verifica que el archivo CSV está en el formato correcto y accesible.")
+        st.error(f"Error loading or processing data: {str(e)}")
+        st.write("Please verify that the CSV file is correctly formatted and accessible.")
+
+    st.markdown("""
+    <style>
+        .footer {
+            position: fixed;
+            left: 0;
+            bottom: 0;
+            width: 100%;
+            background-color: #f5f5f5;
+            color: black;
+            text-align: center;
+            padding: 10px;
+            font-size: 12px;
+        }
+    </style>
+    <div class="footer">
+        Developed by Wilmer Mateo Heras Vera | © 2024 Niagara Falls University
+    </div>
+    """, unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
