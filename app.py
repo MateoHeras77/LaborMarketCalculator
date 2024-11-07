@@ -76,11 +76,9 @@ def initialize_session_state():
     if 'show_trends' not in st.session_state:
         st.session_state.show_trends = False
     if 'selected_year' not in st.session_state:
-        st.session_state.selected_year = 'All'
+        st.session_state.selected_year = []
     if 'selected_province' not in st.session_state:
-        st.session_state.selected_province = 'All'
-    if 'graph_province' not in st.session_state:
-        st.session_state.graph_province = 'All'
+        st.session_state.selected_province = []
 
 def calculate_and_store_results():
     """
@@ -144,32 +142,32 @@ def main():
             
             col1, col2 = st.columns(2)
             with col1:
-                st.session_state.selected_year = st.selectbox(
+                st.session_state.selected_year = st.multiselect(
                     "Filter by Year",
-                    ['All'] + sorted(st.session_state.results_df['Year'].unique().tolist()),
+                    sorted(st.session_state.results_df['Year'].unique().tolist()),
                     key='year_filter'
                 )
             with col2:
-                st.session_state.selected_province = st.selectbox(
+                st.session_state.selected_province = st.multiselect(
                     "Filter by Province in Table",
-                    ['All'] + sorted(st.session_state.results_df['Province'].unique().tolist()),
+                    sorted(st.session_state.results_df['Province'].unique().tolist()),
                     key='province_filter'
                 )
             
             filtered_df = st.session_state.results_df.copy()
-            if st.session_state.selected_year != 'All':
-                filtered_df = filtered_df[filtered_df['Year'] == st.session_state.selected_year]
-            if st.session_state.selected_province != 'All':
-                filtered_df = filtered_df[filtered_df['Province'] == st.session_state.selected_province]
+            if st.session_state.selected_year:
+                filtered_df = filtered_df[filtered_df['Year'].isin(st.session_state.selected_year)]
+            if st.session_state.selected_province:
+                filtered_df = filtered_df[filtered_df['Province'].isin(st.session_state.selected_province)]
 
             filtered_df_styled = filtered_df[['Year', 'Province', 'Quarter', 'Probability']]
             st.dataframe(filtered_df_styled.style.format({'Probability': "{:.2f}%"}))
-
-            st.session_state.graph_province = st.selectbox(
-                "Select Province for Graph",
-                ['All'] + sorted(st.session_state.results_df['Province'].unique().tolist()),
+            st.session_state.graph_province = st.multiselect(
+                "Select Provinces for Graph",
+                sorted(st.session_state.results_df['Province'].unique().tolist()),
                 key='graph_province_filter'
             )
+
 
             st.session_state.show_trends = st.checkbox(
                 "Show Trends Graph",
@@ -179,13 +177,12 @@ def main():
             
             if st.session_state.show_trends:
                 graph_df = st.session_state.results_df.copy()
-                if st.session_state.graph_province != 'All':
-                    graph_df = graph_df[graph_df['Province'] == st.session_state.graph_province]
+                if st.session_state.graph_province:
+                    graph_df = graph_df[graph_df['Province'].isin(st.session_state.graph_province)]
+
                 
-                # Combine Year and Quarter for X-axis display
                 graph_df['Year_Quarter'] = graph_df['Year'] + "-Q" + graph_df['Quarter'].astype(str)
                 
-                # Define the Altair chart
                 chart = alt.Chart(graph_df).mark_line().encode(
                     x=alt.X('Year_Quarter:O', title="Year and Quarter"),
                     y=alt.Y('Probability:Q', title="Probability (%)"),
@@ -193,13 +190,13 @@ def main():
                     tooltip=['Year', 'Quarter', 'Province', 'Probability']
                 ).properties(
                     title="Probability Trends by Province",
-                    width=1000,  # Ajusta el ancho del gráfico
-                    height=600  # Ajusta la altura del gráfico
+                    width=1000,
+                    height=600
                 ).configure_axis(
-                    labelAngle=-45  # Optional: Rotate labels for better readability
+                    labelAngle=-45
                 ).configure_legend(
-                orient='bottom',  # Move the legend to the bottom
-                columns=2
+                    orient='bottom',
+                    columns=2
                 )
                 
                 st.altair_chart(chart, use_container_width=True)
