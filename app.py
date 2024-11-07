@@ -192,9 +192,14 @@ def main():
                     color='Province:N',
                     tooltip=['Year', 'Quarter', 'Province', 'Probability']
                 ).properties(
-                    title="Probability Trends by Province"
+                    title="Probability Trends by Province",
+                    width=1000,  # Ajusta el ancho del gráfico
+                    height=600  # Ajusta la altura del gráfico
                 ).configure_axis(
                     labelAngle=-45  # Optional: Rotate labels for better readability
+                ).configure_legend(
+                orient='bottom',  # Move the legend to the bottom
+                columns=2
                 )
                 
                 st.altair_chart(chart, use_container_width=True)
