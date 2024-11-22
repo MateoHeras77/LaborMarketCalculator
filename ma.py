@@ -16,7 +16,7 @@ data = {
     "Digital Ads (%)": [30, 35, 40, 45],
     "Print Ads (%)": [20, 20, 20, 20],
     "Other Ads (%)": [10, 10, 10, 10],
-    "Sales Volume ('000)": [400, 480, 580, 700],
+    "Sales Volume": [400, 480, 580, 700],
     "Revenue": [1996, 2395, 3184, 3843],
     "Market Share (%)": [8, 9, 10, 11],
 }
@@ -30,7 +30,7 @@ df["Digital Ad Spend"] = df["Advertising Budget"] * (df["Digital Ads (%)"] / 100
 df["Print Ad Spend"] = df["Advertising Budget"] * (df["Print Ads (%)"] / 100)
 df["Other Ad Spend"] = df["Advertising Budget"] * (df["Other Ads (%)"] / 100)
 df["Revenue per Ad Dollar"] = df["Revenue"] / df["Advertising Budget"]
-df["Sales per Retail Outlet"] = df["Sales Volume ('000)"] / df["Retail Outlets"]
+df["Sales per Retail Outlet"] = df["Sales Volume"] / df["Retail Outlets"]
 df["Revenue per Product Line"] = df["Revenue"] / df["Product Lines"]
 
 # ---- Streamlit Dashboard ----
@@ -56,7 +56,7 @@ if page == "Summary Tables":
 elif page == "Correlation Analysis":
     st.header("Correlation Analysis")
     corr_data = df[
-        ["Advertising Budget", "Sales Volume ('000)", "Revenue", "Market Share (%)", 
+        ["Advertising Budget", "Sales Volume", "Revenue", "Market Share (%)", 
          "TV Ad Spend", "Digital Ad Spend", "Revenue per Ad Dollar", 
          "Sales per Retail Outlet", "Revenue per Product Line"]
     ]
@@ -75,7 +75,7 @@ elif page == "Visualizations":
     # Sales Volume and Revenue Trends
     st.write("### Sales Volume and Revenue by Quarter")
     fig, ax = plt.subplots()
-    ax.plot(df["Quarter"], df["Sales Volume ('000)"], label="Sales Volume ('000)", marker="o")
+    ax.plot(df["Quarter"], df["Sales Volume"], label="Sales Volume", marker="o")
     ax.plot(df["Quarter"], df["Revenue"], label="Revenue", marker="o", linestyle="--")
     ax.set_ylabel("Value")
     ax.set_title("Sales and Revenue Trends")
