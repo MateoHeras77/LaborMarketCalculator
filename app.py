@@ -3,9 +3,10 @@ import pandas as pd
 import numpy as np
 import itertools
 import plotly.express as px
+import json
+from urllib.request import urlopen
 
 def load_coefficient_data(csv_path):
-    # Mismo código para cargar los datos
     df = pd.read_csv(csv_path)
     years = [col for col in df.columns if col.isdigit()]
     coefficients_by_year = {}
@@ -65,6 +66,13 @@ def calculate_and_store_results():
         st.session_state.coefficients_by_year
     )
     st.session_state.results_calculated = True
+
+@st.cache_data
+def load_canada_geojson():
+    geojson_url = "https://raw.githubusercontent.com/codeforamerica/click_that_hood/master/public/data/canada.geojson"
+    with urlopen(geojson_url) as response:
+        canada_geojson = json.load(response)
+    return canada_geojson
 
 def main():
     st.title("Historical Job Opportunities Recommender")
@@ -138,8 +146,79 @@ def main():
             filtered_df_styled = filtered_df[['Year', 'Province', 'Quarter', 'Probability']]
             st.dataframe(filtered_df_styled.style.format({'Probability': "{:.2f}%"}))
 
+            # Choropleth Map Section
+            st.subheader("Provincial Employment Probability Map")
+            
+            # Calculate average probability by province for choropleth map
+            if st.session_state.selected_year != 'All':
+                map_data = filtered_df[filtered_df['Year'] == st.session_state.selected_year]
+            else:
+                map_data = filtered_df
+
+            # Create a complete list of all Canadian provinces
+            all_provinces = [
+                'Alberta', 'British Columbia', 'Manitoba', 'New Brunswick',
+                'Newfoundland and Labrador', 'Northwest Territories', 'Nova Scotia',
+                'Nunavut', 'Ontario', 'Prince Edward Island', 'Quebec', 'Saskatchewan',
+                'Yukon'
+            ]
+
+            # Calculate averages for provinces with data
+            avg_prob_by_province = map_data.groupby('Province')['Probability'].mean().reset_index()
+            
+            # Create a complete DataFrame with all provinces
+            complete_provinces_df = pd.DataFrame({'Province': all_provinces})
+            avg_prob_by_province = pd.merge(
+                complete_provinces_df,
+                avg_prob_by_province,
+                on='Province',
+                how='left'
+            )
+
+            # Get min and max values for color scale (only from provinces with data)
+            min_prob = avg_prob_by_province['Probability'].min()
+            max_prob = avg_prob_by_province['Probability'].max()
+            
+            # Load GeoJSON data
+            canada_geojson = load_canada_geojson()
+
+            # Create choropleth map with updated settings
+            fig_choropleth = px.choropleth(
+                avg_prob_by_province,
+                geojson=canada_geojson,
+                locations='Province',
+                featureidkey='properties.name',
+                color='Probability',
+                color_continuous_scale=['red', 'yellow', 'green'],  # Red to Green scale
+                range_color=[min_prob, max_prob],  # Dynamic range based on data
+                labels={'Probability': 'Average Probability (%)'},
+                title=f"Employment Probability by Province {st.session_state.selected_year}"
+            )
+
+            # Update map layout
+            fig_choropleth.update_geos(
+                fitbounds="locations",
+                visible=False,
+            )
+
+            fig_choropleth.update_layout(
+                margin={"r":0,"t":30,"l":0,"b":0},
+                height=500
+            )
+
+            # Update missing values to be transparent
+            fig_choropleth.update_traces(
+                marker_line_color='darkgray',
+                marker_line_width=1,
+                showscale=True
+            )
+
+            # Display the choropleth map
+            st.plotly_chart(fig_choropleth, use_container_width=True)
+
+            # Trends Graph Section
             st.session_state.graph_province = st.selectbox(
-                "Select Province for Graph",
+                "Select Province for Trend Graph",
                 ['All'] + sorted(st.session_state.results_df['Province'].unique().tolist()),
                 key='graph_province_filter'
             )
@@ -157,7 +236,6 @@ def main():
                 
                 graph_df['Year_Quarter'] = graph_df['Year'] + "-Q" + graph_df['Quarter'].astype(str)
                 
-                # Gráfico con Plotly
                 fig = px.line(
                     graph_df, 
                     x='Year_Quarter', 
@@ -168,7 +246,7 @@ def main():
                     labels={"Year_Quarter": "Year and Quarter", "Probability": "Probability (%)"},
                     markers=False
                 )
-                fig.update_xaxes(tickangle=-45)  # Opcional: Rotar etiquetas para mejor legibilidad
+                fig.update_xaxes(tickangle=-45)
                 st.plotly_chart(fig, use_container_width=True)
                 
     except Exception as e:
