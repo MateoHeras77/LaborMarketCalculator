@@ -85,6 +85,16 @@ def main():
     **LinkedIn**: [linkedin.com/in/mateoheras](https://www.linkedin.com/in/mateoheras/)  
     ![Logo](https://unfc.ca/wp-content/uploads/2023/04/UNF-logo-full.svg)
     """, unsafe_allow_html=True)
+    # Agregar la ecuación de regresión logística usando LaTeX
+    st.sidebar.markdown("""
+    ### Labor Market Model
+    
+    The model for Labor Market is given by the equation:
+    
+    $$
+    \text{Labor Market} = \beta_0 + \beta_1 \cdot \text{Age} + \beta_2 \cdot \text{Education Level} + \beta_3 \cdot \text{Gender} + \beta_4 \cdot \text{Migration Status} + \beta_5 \cdot \text{Marital Status} + \beta_6 \cdot \text{Occupation (NOC)}
+    $$
+    """)
     # Mostrar la imagen del QR desde un archivo local
     st.sidebar.image("qr.png", caption="QR Code", use_column_width=True)
 
