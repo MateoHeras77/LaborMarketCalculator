@@ -79,13 +79,14 @@ def main():
 
     st.sidebar.title("About the Author")
     st.sidebar.markdown(""" 
-    **Authors**: Mateo Heras, Carlos Juarez, Roverto Reyna, Emmanuel Santiago and Sacbe Juarez 
+    **Authors**: Mateo Heras, Carlos Juarez, Roverto Reyna, Emmanuel Santiago and Sacbe Juarez   
     **University**: University of Niagara Falls  
     **Email**: [wmateohv@hotmail.com](mailto:wmateohv@hotmail.com)  
     **LinkedIn**: [linkedin.com/in/mateoheras](https://www.linkedin.com/in/mateoheras/)  
-    ![Logo](qr.png)
     ![Logo](https://unfc.ca/wp-content/uploads/2023/04/UNF-logo-full.svg)
     """, unsafe_allow_html=True)
+    # Mostrar la imagen del QR desde un archivo local
+    st.sidebar.image("qr.png", caption="QR Code", use_column_width=True)
 
     initialize_session_state()
     
