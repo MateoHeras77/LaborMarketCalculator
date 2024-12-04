@@ -86,6 +86,8 @@ def main():
     ![Logo](https://unfc.ca/wp-content/uploads/2023/04/UNF-logo-full.svg)
     """, unsafe_allow_html=True)
     # Agregar la ecuación de regresión logística usando LaTeX
+
+    # Agregar la ecuación de regresión logística usando LaTeX
     st.sidebar.markdown("""
     ### Labor Market Model
     
