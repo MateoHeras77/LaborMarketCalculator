@@ -79,10 +79,11 @@ def main():
 
     st.sidebar.title("About the Author")
     st.sidebar.markdown(""" 
-    **Author**: Wilmer Mateo Heras Vera  
+    **Authors**: Mateo Heras, Carlos Juarez, Roverto Reyna, Emmanuel Santiago and Sacbe Juarez 
     **University**: University of Niagara Falls  
     **Email**: [wmateohv@hotmail.com](mailto:wmateohv@hotmail.com)  
     **LinkedIn**: [linkedin.com/in/mateoheras](https://www.linkedin.com/in/mateoheras/)  
+    ![Logo](qr.png)
     ![Logo](https://unfc.ca/wp-content/uploads/2023/04/UNF-logo-full.svg)
     """, unsafe_allow_html=True)
 
